@@ -18,4 +18,3 @@ curl -s -o "$BINARY_FILE" "$FILE_URL"
 chown $USER "$BINARY_FILE"
 chmod 755 "$BINARY_FILE"
 chmod u+x "$BINARY_FILE"
-

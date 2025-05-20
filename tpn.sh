@@ -14,7 +14,7 @@ INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
 CURRENT_VERSION='v0.0.1'
-REPO_URL="https://raw.githubusercontent.com/actuallymentor/battery"
+REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 
 
 # --------------------
