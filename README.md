@@ -2,6 +2,8 @@
 
 The Tensor Private Network (TPN) command line tool allows you to create VPN connections to the [TPN network](https://tpn.taofu.xyz/) that runs on Bittensor subnet 65.
 
+![TPN](https://tpn.taofu.xyz/img/tpn-social-card.jpg)
+
 **Installation:**
 
 ```bash
