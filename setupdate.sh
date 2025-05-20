@@ -14,16 +14,20 @@ mkdir -p "$BINARY_FOLDER"
 # Download the file
 curl -fsSL "$FILE_URL" | sudo tee "$BINARY_FILE" > /dev/null
 
-# Make it executable
+# Get the current owner (macOS-compatible)
+OWNER=$(stat -f '%Su' "$BINARY_FILE")
 
 # If user is not owner, change ownership
-if [ "$(stat -c '%U' "$BINARY_FILE")" != "$USER" ]; then
+if [ "$OWNER" != "$USER" ]; then
   echo "Changing ownership of $BINARY_FILE to $USER"
-  sudo chown $USER "$BINARY_FILE"
+  sudo chown "$USER" "$BINARY_FILE"
 fi
 
+# Get current permissions
+PERMS=$(stat -f '%Mp%Lp' "$BINARY_FILE")
+
 # If permissions not 755, change them
-if [ "$(stat -c '%a' "$BINARY_FILE")" != "755" ]; then
+if [ "$PERMS" != "0755" ]; then
   echo "Changing permissions of $BINARY_FILE to 755"
   sudo chmod 755 "$BINARY_FILE"
 fi
