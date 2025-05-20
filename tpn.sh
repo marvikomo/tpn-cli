@@ -68,6 +68,7 @@ fi
 # --------------------
 cleanup() {
   # [ -n "$TMP_CONF" ] && echo "Preserving config file: $TMP_CONF"
+  echo ""
 }
 trap cleanup EXIT
 
