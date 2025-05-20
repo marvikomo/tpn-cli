@@ -13,7 +13,7 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.1'
+CURRENT_VERSION='v0.0.2'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 
 
@@ -67,7 +67,7 @@ fi
 # Preserve config file on exit
 # --------------------
 cleanup() {
-  [ -n "$TMP_CONF" ] && echo "Preserving config file: $TMP_CONF"
+  # [ -n "$TMP_CONF" ] && echo "Preserving config file: $TMP_CONF"
 }
 trap cleanup EXIT
 
@@ -94,6 +94,13 @@ Options for connect:
   -f                         skip confirmation
   --dry                      dry-run
   -v, --verbose              show wg-quick output
+
+Examples:
+  tpn countries
+  tpn connect US
+  tpn status
+  tpn disconnect
+  tpn update
 
 Options for disconnect:
   --dry                      dry-run
@@ -181,8 +188,12 @@ connect() {
       echo "DRY RUN: sudo wg-quick down $cfg"
       echo "DRY RUN: rm -f $cfg"
     else
-      echo "Running: sudo wg-quick down $cfg"
-      [ $verbose -eq 1 ] && sudo wg-quick down "$cfg" || sudo wg-quick down "$cfg" >/dev/null 2>&1
+      if [ $verbose -eq 1 ]; then
+        echo "Running: sudo wg-quick down $cfg"
+        sudo wg-quick down "$cfg"
+      else
+        sudo wg-quick down "$cfg" >/dev/null 2>&1
+      fi
       rm -f "$cfg"
     fi
   fi
@@ -192,6 +203,14 @@ connect() {
   echo "Connecting you to a TPN node..."
 
   api_request "/api/config/new?format=text&geo=$country&lease_minutes=$lease" > "$TMP_CONF"
+
+  # Check if TMP_CONF contains json with the key "error", if so exit with error. Do not use jq
+  if grep -q '"error"' "$TMP_CONF"; then
+    echo "Error: $(grep '"error"' "$TMP_CONF" | cut -d'"' -f4)" >&2
+    rm -f "$TMP_CONF"
+    exit 1
+  fi
+  
 
   [ $verbose -eq 1 ] && {
     echo "Config file: $TMP_CONF"
@@ -236,8 +255,12 @@ disconnect() {
   if [ $dry -eq 1 ]; then
     echo "DRY RUN: sudo wg-quick down $cfg"
   else
-    echo "Running: sudo wg-quick down $cfg"
-    [ $verbose -eq 1 ] && sudo wg-quick down "$cfg" || sudo wg-quick down "$cfg" >/dev/null 2>&1
+    if [ $verbose -eq 1 ]; then
+      sudo wg-quick down "$cfg"
+    else
+      echo "Running: sudo wg-quick down $cfg"
+      sudo wg-quick down "$cfg" >/dev/null 2>&1
+    fi
     rm -f "$cfg"
   fi
 
@@ -252,12 +275,15 @@ visudo() {
   file="/etc/sudoers.d/tpn"
   echo "Creating sudoers entry for wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
+
+  # Add sudoers entry for wg-quick up and down
   printf "%s ALL=(ALL) NOPASSWD: %s up %s, %s down %s\n" \
     "$user" "$WG_QUICK" "$TMP_DIR/${INTERFACE_NAME}.conf" \
     "$WG_QUICK" "$TMP_DIR/${INTERFACE_NAME}.conf" \
     | sudo tee "$file" >/dev/null
   sudo chmod 440 "$file"
-  echo "Done."
+  echo "Added sudoers entry for $user: $file"
+  echo "You can now run tpn without sudo."
 }
 
 # --------------------
@@ -308,7 +334,7 @@ update() {
     echo "This will run: curl -sS $REMOTE_UPDATE_URL | bash"
     echo "Press any key to continue or Ctrl+C to cancel"
     read
-    curl -sS "$REMOTE_UPDATE_URL" | bash
+    curl -sS "$REMOTE_UPDATE_URL" | sudo sh
   fi
 
   exit 0

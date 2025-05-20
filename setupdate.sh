@@ -6,13 +6,13 @@ BINARY_FILE="$BINARY_FOLDER/tpn"
 
 # Download the current executable
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
-FILE_URL="${REPO_URL}/main/tpn.sh"
+FILE_URL="$REPO_URL/main/tpn.sh"
 
 # Make sure binfolder exists
 mkdir -p "$BINARY_FOLDER"
 
 # Download the file
-curl -s -o "$BINARY_FILE" "$FILE_URL"
+curl -fsSL "$FILE_URL" | sudo tee "$BINARY_FILE" > /dev/null
 
 # Make it executable
 chown $USER "$BINARY_FILE"
