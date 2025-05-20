@@ -13,8 +13,42 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.2'
+CURRENT_VERSION='v0.0.4'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
+
+# --------------------
+# Helpers
+# --------------------
+
+green() {
+  if [ $# -gt 0 ]; then
+    printf '\033[0;32m%s\033[0m\n' "$*"
+  else
+    while IFS= read -r line; do
+      printf '\033[0;32m%s\033[0m\n' "$line"
+    done
+  fi
+}
+
+red() {
+  if [ $# -gt 0 ]; then
+    printf '\033[0;31m%s\033[0m\n' "$*"
+  else
+    while IFS= read -r line; do
+      printf '\033[0;31m%s\033[0m\n' "$line"
+    done
+  fi
+}
+
+grey() {
+  if [ $# -gt 0 ]; then
+    printf '\033[0;90m%s\033[0m\n' "$*"
+  else
+    while IFS= read -r line; do
+      printf '\033[0;90m%s\033[0m\n' "$line"
+    done
+  fi
+}
 
 
 # --------------------
@@ -64,13 +98,12 @@ if [ -z "$WG_QUICK" ] || [ -z "$WG_TOOL" ]; then
 fi
 
 # --------------------
-# Preserve config file on exit
+# Cleanup utility
 # --------------------
-cleanup() {
-  # [ -n "$TMP_CONF" ] && echo "Preserving config file: $TMP_CONF"
-  echo ""
-}
-trap cleanup EXIT
+# cleanup() {
+  
+# }
+# trap cleanup EXIT
 
 # --------------------
 # Usage help
@@ -175,10 +208,8 @@ connect() {
   [ -n "$timeout_override" ] && TIMEOUT="$timeout_override"
   [ -z "$country" ] && { echo "Error: country code required" >&2; usage; }
 
-  echo "Connecting to $country (lease=$lease min)..."
-
   [ ! -f /etc/sudoers.d/tpn ] && { echo "No sudoers entry for wg-quick."; confirm "Add entry?" && visudo; }
-  [ $skip_confirm -eq 0 ] && ! confirm "Proceed?" && { echo "Aborted."; return; }
+  [ $skip_confirm -eq 0 ] && ! confirm "Connecting to $country for $lease minutes" && { echo "Aborted."; return; }
 
   cfg="$TMP_DIR/${INTERFACE_NAME}.conf"
 
@@ -226,13 +257,54 @@ connect() {
   fi
 
   echo "IP after: $(current_ip)"
+
+  # Save a timestamp for when we expect the lease to expire to the temp directory in teh file tpn_lease_end. Use the right date command for the OS
+  now=$(date +%s)
+  lease_end_timestamp=$(expr "$now" + "$lease" \* 60)
+
+  # Do the same os dependent conversion for the readable date
+  if [ "$(uname)" = "Darwin" ]; then
+    lease_end_readable=$(date -j -v+${lease}M +"%Y-%m-%d %H:%M:%S")
+  else
+    lease_end_readable=$(date -d "+${lease} minutes" +"%Y-%m-%d %H:%M:%S")
+  fi
+
+  # Save lease end timestamp to temp file
+  echo "$lease_end_timestamp" > "$TMP_DIR/tpn_lease_end_timestamp"
+  echo "$lease_end_readable" > "$TMP_DIR/tpn_lease_end_readable"
+
+  echo "TPN Connection lease ends at $lease_end_readable"
+
 }
 
 # --------------------
 # Show status
 # --------------------
 status() {
-  echo "TPN status: $(wg show interfaces | wc -l | grep -q 0 && echo "Disconnected" || echo "Connected") ($(current_ip))"
+  IS_CONNECTED=$(wg show interfaces | wc -l | grep -q 0 && echo "Disconnected" || echo "Connected")
+
+  MESSAGE="TPN status: $IS_CONNECTED ($(current_ip))"
+  if [ "$IS_CONNECTED" = "Connected" ]; then
+    green "$MESSAGE"
+  else
+    echo "$MESSAGE"
+  fi
+
+  # If connected, show the time to lease end 
+  if [ "$IS_CONNECTED" = "Connected" ]; then
+    if [ -f "$TMP_DIR/tpn_lease_end_readable" ]; then
+      now=$(date +%s)
+      lease_end_timestamp=$(cat "$TMP_DIR/tpn_lease_end_timestamp")
+      lease_end=$(cat "$TMP_DIR/tpn_lease_end_readable")
+      minutes_until_lease_end=$(( (lease_end_timestamp - now) / 60 ))
+      [ "$minutes_until_lease_end" -lt 0 ] && minutes_until_lease_end=0
+      grey "Lease ends in $minutes_until_lease_end minutes ($lease_end)"
+    else
+      echo "No lease end time found."
+      return
+    fi
+  fi
+
 }
 
 # --------------------
