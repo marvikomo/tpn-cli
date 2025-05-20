@@ -14,7 +14,7 @@ curl -sS "https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setupdate.sh
 For a list of commands, run `tpn help`, which will show you available options like so:
 
 ```bash
-TPN v0.0.1 - CLI for creating VPN connections via the Tensor Private Network (TPN)
+TPN v0.0.5 - CLI for creating VPN connections via the Tensor Private Network (TPN)
 Usage: tpn <command> [options]
 
 Commands:
@@ -32,6 +32,13 @@ Options for connect:
   -f                         skip confirmation
   --dry                      dry-run
   -v, --verbose              show wg-quick output
+
+Examples:
+  tpn countries
+  tpn connect US
+  tpn status
+  tpn disconnect
+  tpn update
 
 Options for disconnect:
   --dry                      dry-run
