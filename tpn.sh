@@ -13,7 +13,7 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.4'
+CURRENT_VERSION='v0.0.5'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 
 # --------------------
@@ -230,7 +230,7 @@ connect() {
     fi
   fi
 
-  echo "IP before: $(current_ip)"
+  IP_BEFORE_CONNECT="$(current_ip)"
   TMP_CONF="$cfg"
   echo "Connecting you to a TPN node..."
 
@@ -252,11 +252,15 @@ connect() {
   if [ $dry -eq 1 ]; then
     echo "DRY RUN: sudo wg-quick up $TMP_CONF"
   else
-    echo "Running: sudo wg-quick up $TMP_CONF"
-    [ $verbose -eq 1 ] && sudo wg-quick up "$TMP_CONF" || sudo wg-quick up "$TMP_CONF" >/dev/null 2>&1
+    if [ $verbose -eq 1 ]; then
+        sudo wg-quick up "$TMP_CONF"
+      else
+        sudo wg-quick up "$TMP_CONF" >/dev/null 2>&1
+    fi
   fi
 
-  echo "IP after: $(current_ip)"
+  IP_AFTER_CONNECT="$(current_ip)"
+  green "IP address changed from $IP_BEFORE_CONNECT to $IP_AFTER_CONNECT"
 
   # Save a timestamp for when we expect the lease to expire to the temp directory in teh file tpn_lease_end. Use the right date command for the OS
   now=$(date +%s)
@@ -273,7 +277,7 @@ connect() {
   echo "$lease_end_timestamp" > "$TMP_DIR/tpn_lease_end_timestamp"
   echo "$lease_end_readable" > "$TMP_DIR/tpn_lease_end_readable"
 
-  echo "TPN Connection lease ends at $lease_end_readable"
+  grey "TPN Connection lease ends in $lease minutes ($lease_end_readable)"
 
 }
 
@@ -322,6 +326,7 @@ disconnect() {
 
   cfg="$TMP_DIR/${INTERFACE_NAME}.conf"
   echo "Disconnecting TPN..."
+  IP_BEFORE_DISCONNECT="$(current_ip)"
 
   [ ! -f "$cfg" ] && { echo "Error: no config to disconnect" >&2; exit 1; }
 
@@ -331,13 +336,13 @@ disconnect() {
     if [ $verbose -eq 1 ]; then
       sudo wg-quick down "$cfg"
     else
-      echo "Running: sudo wg-quick down $cfg"
       sudo wg-quick down "$cfg" >/dev/null 2>&1
     fi
     rm -f "$cfg"
   fi
 
-  echo "IP now: $(current_ip)"
+  IP_AFTER_DISCONNECT="$(current_ip)"
+  green "IP changed back from $IP_BEFORE_DISCONNECT to $IP_AFTER_DISCONNECT"
 }
 
 # --------------------
