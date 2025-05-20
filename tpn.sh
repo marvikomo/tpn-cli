@@ -409,7 +409,7 @@ update() {
     echo "Already up to date. Current version: $CURRENT_VERSION"
   else
     echo "New version available."
-    echo "This will run: curl -sS $REMOTE_UPDATE_URL | bash"
+    echo "This will run: curl -sS $REMOTE_UPDATE_URL | sudo sh"
     echo "Press any key to continue or Ctrl+C to cancel"
     read
     curl -sS "$REMOTE_UPDATE_URL" | sudo sh
