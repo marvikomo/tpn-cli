@@ -13,7 +13,7 @@ curl -sS "https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setupdate.sh
 
 For a list of commands, run `tpn help`, which will show you available options like so:
 
-```bash
+```md
 TPN v0.0.5 - CLI for creating VPN connections via the Tensor Private Network (TPN)
 Usage: tpn <command> [options]
 
