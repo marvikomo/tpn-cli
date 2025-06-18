@@ -7,14 +7,15 @@
 # --------------------
 # Configuration
 # --------------------
-BASE_URLS="http://185.189.44.166:3000 http://185.189.44.167:3000 http://185.189.44.168:3000"
+BASE_URLS="http://161.35.91.172:3000"
 TIMEOUT=${TIMEOUT:-60}
 TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.5'
+CURRENT_VERSION='v0.0.7'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
+DEBUG=${DEBUG:-false}
 
 # --------------------
 # Helpers
@@ -121,6 +122,7 @@ Commands:
   visudo                            one-time sudoers entry for wg-quick
   panic                             DESTRUCTIVE: wipe or remove network interfaces
   help                              show this help
+  update [--silent]                 check for updates and install if available
 
 Options for connect:
   -l, --lease_minutes <min>  lease duration (default 10)
@@ -144,17 +146,28 @@ EOF
 }
 
 # --------------------
+# Curl with retry
+# --------------------
+call_url() {
+  url="$1"
+  timeout="${2:-$TIMEOUT}"
+  # If DEBUG=true log out url to call
+  curl --retry 3 --retry-delay 5 --max-time "$TIMEOUT" -s "$url"
+}
+
+
+# --------------------
 # API request with failover
 # --------------------
 api_request() {
   path="$1"
   for base in $BASE_URLS; do
-    resp=$(curl -s --max-time "$TIMEOUT" "$base$path") && {
+    resp=$(call_url "$base$path") && {
       printf "%s" "$resp"
       return 0
     }
   done
-  echo "Error: all endpoints failed for $path" >&2
+  red "Error: all endpoints failed for $path" >&2
   exit 1
 }
 
@@ -162,7 +175,7 @@ api_request() {
 # Get current public IP
 # --------------------
 current_ip() {
-  curl -s "$IP_SERVICE"
+  call_url "$IP_SERVICE"
 }
 
 # --------------------
@@ -175,6 +188,9 @@ countries() {
     shift
   fi
   prefix="$1"
+
+  [ "$DEBUG" = true ] && grey "API call: /api/config/countries?format=$fmt"
+
   result=$(api_request "/api/config/countries?format=$fmt")
   printf "%s\n" "$result"
 }
@@ -184,6 +200,9 @@ countries() {
 # --------------------
 connect() {
   lease=10; timeout_override=""; skip_confirm=0; dry=0; verbose=0; country=""
+
+  # If DEBUG=true set verbose to 1
+  [ "$DEBUG" = true ] && verbose=1
 
   # Parse flags
   while [ $# -gt 0 ]; do
@@ -196,7 +215,7 @@ connect() {
       --dry) dry=1; shift;;
       -v|--verbose) verbose=1; shift;;
       --) shift; break;;
-      -*) echo "Unknown option: $1" >&2; usage;;
+      -*) red "Unknown option: $1" >&2; usage;;
       *) [ -z "$country" ] && country="$1"; shift;;
     esac
   done
@@ -206,22 +225,22 @@ connect() {
 
   # Validate input
   [ -n "$timeout_override" ] && TIMEOUT="$timeout_override"
-  [ -z "$country" ] && { echo "Error: country code required" >&2; usage; }
+  [ -z "$country" ] && { red "Error: country code required" >&2; usage; }
 
-  [ ! -f /etc/sudoers.d/tpn ] && { echo "No sudoers entry for wg-quick."; confirm "Add entry?" && visudo; }
-  [ $skip_confirm -eq 0 ] && ! confirm "Connecting to $country for $lease minutes" && { echo "Aborted."; return; }
+  [ ! -f /etc/sudoers.d/tpn ] && { red "No sudoers entry for wg-quick."; confirm "Add entry?" && visudo; }
+  [ $skip_confirm -eq 0 ] && ! confirm "Connecting to $country for $lease minutes" && { red "Aborted."; return; }
 
   cfg="$TMP_DIR/${INTERFACE_NAME}.conf"
 
   # Disconnect previous config if exists
   if [ -f "$cfg" ]; then
-    echo "Cleaning up old connection..."
+    grey "Cleaning up old connection..."
     if [ $dry -eq 1 ]; then
-      echo "DRY RUN: sudo wg-quick down $cfg"
-      echo "DRY RUN: rm -f $cfg"
+      grey "DRY RUN: sudo wg-quick down $cfg"
+      grey "DRY RUN: rm -f $cfg"
     else
       if [ $verbose -eq 1 ]; then
-        echo "Running: sudo wg-quick down $cfg"
+        grey "Running: sudo wg-quick down $cfg"
         sudo wg-quick down "$cfg"
       else
         sudo wg-quick down "$cfg" >/dev/null 2>&1
@@ -232,25 +251,27 @@ connect() {
 
   IP_BEFORE_CONNECT="$(current_ip)"
   TMP_CONF="$cfg"
-  echo "Connecting you to a TPN node..."
+  grey "Connecting you to a TPN node..."
 
-  api_request "/api/config/new?format=text&geo=$country&lease_minutes=$lease" > "$TMP_CONF"
+  call_path="/api/config/new?format=text&geo=$country&lease_minutes=$lease"
+  [ $verbose -eq 1 ] && grey "API call: $call_path"
+  api_request "$call_path" > "$TMP_CONF"
 
   # Check if TMP_CONF contains json with the key "error", if so exit with error. Do not use jq
   if grep -q '"error"' "$TMP_CONF"; then
-    echo "Error: $(grep '"error"' "$TMP_CONF" | cut -d'"' -f4)" >&2
+    red "Error: $(grep '"error"' "$TMP_CONF" | cut -d'"' -f4)" >&2
     rm -f "$TMP_CONF"
     exit 1
   fi
   
 
   [ $verbose -eq 1 ] && {
-    echo "Config file: $TMP_CONF"
+    grey "Config file: $TMP_CONF"
     cat "$TMP_CONF"
   }
 
   if [ $dry -eq 1 ]; then
-    echo "DRY RUN: sudo wg-quick up $TMP_CONF"
+    grey "DRY RUN: sudo wg-quick up $TMP_CONF"
   else
     if [ $verbose -eq 1 ]; then
         sudo wg-quick up "$TMP_CONF"
@@ -264,7 +285,7 @@ connect() {
 
   # Save a timestamp for when we expect the lease to expire to the temp directory in teh file tpn_lease_end. Use the right date command for the OS
   now=$(date +%s)
-  lease_end_timestamp=$(expr "$now" + "$lease" \* 60)
+  lease_end_timestamp=$(( now + lease * 60 ))
 
   # Do the same os dependent conversion for the readable date
   if [ "$(uname)" = "Darwin" ]; then
@@ -325,13 +346,13 @@ disconnect() {
   done
 
   cfg="$TMP_DIR/${INTERFACE_NAME}.conf"
-  echo "Disconnecting TPN..."
+  grey "Disconnecting TPN..."
   IP_BEFORE_DISCONNECT="$(current_ip)"
 
   [ ! -f "$cfg" ] && { echo "Error: no config to disconnect" >&2; exit 1; }
 
   if [ $dry -eq 1 ]; then
-    echo "DRY RUN: sudo wg-quick down $cfg"
+    grey "DRY RUN: sudo wg-quick down $cfg"
   else
     if [ $verbose -eq 1 ]; then
       sudo wg-quick down "$cfg"
@@ -351,7 +372,7 @@ disconnect() {
 visudo() {
   user=$(id -un)
   file="/etc/sudoers.d/tpn"
-  echo "Creating sudoers entry for wg-quick..."
+  grey "Creating sudoers entry for wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
 
   # Add sudoers entry for wg-quick up and down
@@ -360,8 +381,8 @@ visudo() {
     "$WG_QUICK" "$TMP_DIR/${INTERFACE_NAME}.conf" \
     | sudo tee "$file" >/dev/null
   sudo chmod 440 "$file"
-  echo "Added sudoers entry for $user: $file"
-  echo "You can now run tpn without sudo."
+  grey "Added sudoers entry for $user: $file"
+  green "You can now run tpn without sudo."
 }
 
 # --------------------
@@ -369,7 +390,7 @@ visudo() {
 # --------------------
 panic() {
   os=$(uname)
-  echo "WARNING: irreversible destructive action."
+  red "WARNING: irreversible destructive action."
   confirm "Proceed?" || { echo "Aborted."; exit 1; }
 
   if [ "$os" = "Darwin" ]; then
@@ -379,8 +400,8 @@ panic() {
   elif [ "$os" = "Linux" ]; then
     wg_ifaces=$(sudo wg show interfaces)
     tun_ifaces=$(ip -o link show | awk -F': ' '/^tun/ {print $2}')
-    echo "WireGuard interfaces: $wg_ifaces"
-    echo "TUN interfaces: $tun_ifaces"
+    grey "WireGuard interfaces: $wg_ifaces"
+    grey "TUN interfaces: $tun_ifaces"
     confirm "Delete these interfaces?" || exit 1
     for iface in $wg_ifaces; do
       sudo wg-quick down "$iface" >/dev/null 2>&1 || sudo ip link set "$iface" down >/dev/null 2>&1
@@ -391,7 +412,7 @@ panic() {
       sudo ip link delete "$iface" >/dev/null 2>&1
     done
   else
-    echo "Unsupported OS: $os"
+    red "Unsupported OS: $os"
     exit 1
   fi
 }
@@ -400,18 +421,29 @@ panic() {
 # Update script
 # --------------------
 update() {
+  silent=0
+  # Parse optional parameter
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --silent) silent=1; shift;;
+      *) shift;;
+    esac
+  done
+
   REMOTE_SCRIPT_URL="$REPO_URL/main/tpn.sh"
   REMOTE_UPDATE_URL="$REPO_URL/main/setupdate.sh"
 
-  echo "Checking for updates..."
+  grey "Checking for updates..."
 
   if curl -sS "$REMOTE_SCRIPT_URL" | grep -q "$CURRENT_VERSION"; then
-    echo "Already up to date. Current version: $CURRENT_VERSION"
+    green "Already up to date. Current version: $CURRENT_VERSION"
   else
-    echo "New version available."
-    echo "This will run: curl -sS $REMOTE_UPDATE_URL | sudo sh"
-    echo "Press any key to continue or Ctrl+C to cancel"
-    read
+    green "New version available."
+    grey "This will run: curl -sS $REMOTE_UPDATE_URL | sudo sh"
+    if [ "$silent" -eq 0 ]; then
+      grey "Press any key to continue or Ctrl+C to cancel"
+      read
+    fi
     curl -sS "$REMOTE_UPDATE_URL" | sudo sh
   fi
 
