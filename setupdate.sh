@@ -12,6 +12,7 @@ FILE_URL="$REPO_URL/main/tpn.sh"
 mkdir -p "$BINARY_FOLDER"
 
 # Download the file
+sudo rm -f "$BINARY_FILE"  # Remove any existing file
 curl -fsSL "$FILE_URL" | sudo tee "$BINARY_FILE" > /dev/null
 
 # Get the current owner (macOS-compatible)
