@@ -17,13 +17,8 @@ BINARY_FILE="$BINARY_FOLDER/tpn"
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 FILE_URL="$REPO_URL/main/tpn.sh"
 
-# Ask user Y/n if they want to proceed
-read -p "Do you want to proceed with the installation? (Y/n): " response
-response=$(echo "$response" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
-if [ "$response" = "n" ] || [ "$response" = "no" ]; then
-    printf "Installation aborted by user.\n"
-    exit 0
-fi
+# Tell the user to expect sudo
+printf '[ 0 ] Requesting superuser permissions for installation...\n'
 
 # Ask for sudo once, in most systems this will cache the permissions for a bit
 sudo -v > /dev/null 2>&1
