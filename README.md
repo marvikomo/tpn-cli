@@ -8,7 +8,7 @@ The Tensor Private Network (TPN) command line tool allows you to create VPN conn
 
 ```bash
 # Run the install script
-curl -sS "https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setupdate.sh" | sudo sh
+curl -sS "https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh" | sh
 ```
 
 **Usage:**

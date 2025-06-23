@@ -13,7 +13,7 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.7'
+CURRENT_VERSION='v0.0.8'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 DEBUG=${DEBUG:-false}
 
@@ -372,17 +372,20 @@ disconnect() {
 visudo() {
   user=$(id -un)
   file="/etc/sudoers.d/tpn"
-  grey "Creating sudoers entry for wg-quick..."
+  grey "Creating sudoers entry for wg and wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
 
-  # Add sudoers entry for wg-quick up and down
-  printf "%s ALL=(ALL) NOPASSWD: %s up %s, %s down %s\n" \
-    "$user" "$WG_QUICK" "$TMP_DIR/${INTERFACE_NAME}.conf" \
-    "$WG_QUICK" "$TMP_DIR/${INTERFACE_NAME}.conf" \
+  # Find binary locations
+  WG_QUICK_BIN=$(command -v wg-quick 2>/dev/null)
+  WG_BIN=$(command -v wg 2>/dev/null)
+
+  # Add sudoers entry for wg and wg-quick (all parameters allowed)
+  printf "%s ALL=(ALL) NOPASSWD: %s, %s\n" \
+    "$user" "$WG_QUICK_BIN" "$WG_BIN" \
     | sudo tee "$file" >/dev/null
   sudo chmod 440 "$file"
   grey "Added sudoers entry for $user: $file"
-  green "You can now run tpn without sudo."
+  green "You can now run TPN without sudo password."
 }
 
 # --------------------
@@ -394,7 +397,7 @@ panic() {
   confirm "Proceed?" || { echo "Aborted."; exit 1; }
 
   if [ "$os" = "Darwin" ]; then
-    confirm "Erase macOS network settings?" || exit 1
+    confirm "Erase macOS network settings? Your computer will reboot." || exit 1
     sudo rm /Library/Preferences/SystemConfiguration/{com.apple.airport.preferences.plist,com.apple.network.identification.plist,NetworkInterfaces.plist,preferences.plist}
     sudo reboot
   elif [ "$os" = "Linux" ]; then
@@ -431,7 +434,7 @@ update() {
   done
 
   REMOTE_SCRIPT_URL="$REPO_URL/main/tpn.sh"
-  REMOTE_UPDATE_URL="$REPO_URL/main/setupdate.sh"
+  REMOTE_UPDATE_URL="$REPO_URL/main/update.sh"
 
   grey "Checking for updates..."
 
@@ -439,14 +442,47 @@ update() {
     green "Already up to date. Current version: $CURRENT_VERSION"
   else
     green "New version available."
-    grey "This will run: curl -sS $REMOTE_UPDATE_URL | sudo sh"
+    grey "This will run: curl -sS $REMOTE_UPDATE_URL | sh"
     if [ "$silent" -eq 0 ]; then
       grey "Press any key to continue or Ctrl+C to cancel"
       read
     fi
-    curl -sS "$REMOTE_UPDATE_URL" | sudo sh
+    curl -sS "$REMOTE_UPDATE_URL" | sh
   fi
 
+  exit 0
+}
+
+# --------------------
+# Uninstall script
+# --------------------
+uninstall() {
+
+  grey "Uninstalling TPN CLI tool..."
+
+  # Disconnect if connected
+  if [ -f "$TMP_DIR/${INTERFACE_NAME}.conf" ]; then
+    grey "Disconnecting TPN..."
+    tpn disconnect
+  fi
+
+  BIN_PATH=$(command -v tpn 2>/dev/null)
+  if [ -n "$BIN_PATH" ] && [ -f "$BIN_PATH" ]; then
+    grey "Removing TPN binary, this may ask for your password..."
+    sudo rm -f "$BIN_PATH"
+    green "TPN binary removed."
+  else
+    grey "TPN binary not found in PATH."
+  fi
+  grey "Removing temporary files..."
+  rm -f "$TMP_DIR/${INTERFACE_NAME}.conf"
+  # Remove visudo file if it exists
+  if [ -f "/etc/sudoers.d/tpn" ]; then
+    grey "Removing sudoers visudo file..."
+    sudo rm -f /etc/sudoers.d/tpn
+    green "Sudoers visudo file removed."
+  fi
+  green "TPN uninstall complete."
   exit 0
 }
 
@@ -464,6 +500,7 @@ case "$cmd" in
   visudo)     visudo;;
   panic)      panic;;
   update)     update;;
+  uninstall)  uninstall;;
   help|--help)usage;;
   *)          usage;;
 esac
