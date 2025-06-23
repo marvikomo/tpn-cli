@@ -6,8 +6,13 @@ trap 'printf "\nAborted by user.\n"; exit 130' INT
 # User welcome message
 printf '\n####################################################################\n'
 printf '# 👋 Welcome, this is the setup script for the tpn CLI tool.\n'
-printf '# Note: this script will ask for your password once or multiple times.\n'
 printf '####################################################################\n\n'
+
+printf 'This script will:\n\n'
+printf '1. Install dependencies needed to make VPN connections.\n'
+printf '2. Download the latest version of the TPN CLI tool.\n'
+printf '3. Verify that everything is working correctly.\n'
+printf '\nNote: installation will ask for your password at least once.\n\n'
 
 # Set the binary folder
 BINARY_FOLDER="/usr/local/bin"
@@ -63,6 +68,10 @@ if [ ! -x "$BINARY_FILE" ]; then
     printf '[ ! ] Making %s executable\n' "$BINARY_FILE"
     sudo chmod +x "$BINARY_FILE"
 fi
+
+# Run TPN visudo
+printf '[ 4 ] Running TPN visudo to ensure proper permissions\n'
+tpn visudo
 
 # Final message
 printf '\n####################################################################\n'

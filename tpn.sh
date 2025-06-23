@@ -80,8 +80,13 @@ install_tools() {
     printf '%s\n' "Running: sudo apt-get update && sudo apt-get install -y wireguard-tools"
     sudo apt-get update && sudo apt-get install -y wireguard-tools
   elif [ "$os" = "Darwin" ]; then
+    # Check if Homebrew is installed, install if not
+    if ! command -v brew >/dev/null 2>&1; then
+      printf '%s\n' "Homebrew not found. Installing Homebrew..."
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
     printf '%s\n' "Running: brew install wireguard-tools"
-    brew install wireguard-tools
+    brew install --no-upgrade wireguard-tools
   else
     printf '%s\n' "Unsupported OS: $os. Install wireguard-tools manually." >&2
     exit 1
