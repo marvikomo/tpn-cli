@@ -497,6 +497,8 @@ uninstall() {
 [ "$#" -ge 1 ] || usage
 cmd=$1; shift
 
+trap 'printf "\nAborted by user.\n"; exit 130' INT
+
 case "$cmd" in
   countries)  countries "$@";;
   connect)    connect "$@";;

@@ -1,8 +1,11 @@
 #!/bin/sh
 
+# Trap SIGINT (Ctrl+C) and exit with a message
+trap 'printf "\nAborted by user.\n"; exit 130' INT
+
 # User welcome message
 printf '\n####################################################################\n'
-echo '# 👋 Welcome, this is the setup script for the tpn CLI tool.'
+printf '# 👋 Welcome, this is the setup script for the tpn CLI tool.'
 printf '# Note: this script will ask for your password once or multiple times.\n'
 printf '####################################################################\n\n'
 

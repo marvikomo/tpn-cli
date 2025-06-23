@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Trap SIGINT (Ctrl+C) to provide a message and exit code 130
+trap 'printf "\nAborted by user.\n"; exit 130' INT
+
 # Set the binary folder
 BINARY_FOLDER="/usr/local/bin"
 BINARY_FILE="$BINARY_FOLDER/tpn"
