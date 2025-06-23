@@ -5,7 +5,7 @@ trap 'printf "\nAborted by user.\n"; exit 130' INT
 
 # User welcome message
 printf '\n####################################################################\n'
-printf '# 👋 Welcome, this is the setup script for the tpn CLI tool.'
+printf '# 👋 Welcome, this is the setup script for the tpn CLI tool.\n'
 printf '# Note: this script will ask for your password once or multiple times.\n'
 printf '####################################################################\n\n'
 
@@ -21,12 +21,16 @@ FILE_URL="$REPO_URL/main/tpn.sh"
 read -p "Do you want to proceed with the installation? (Y/n): " response
 response=$(echo "$response" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
 if [ "$response" = "n" ] || [ "$response" = "no" ]; then
-    echo "Installation aborted by user."
+    printf "Installation aborted by user.\n"
     exit 0
 fi
 
 # Ask for sudo once, in most systems this will cache the permissions for a bit
-sudo echo "Starting TPN installation"
+sudo -v > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    printf "You need to provide superuser permissions to install the TPN CLI tool.\n"
+    exit 1
+fi
 printf '[ 1 ] Superuser permissions acquired.\n'
 
 # Make sure binfolder exists
