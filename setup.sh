@@ -66,6 +66,6 @@ fi
 
 # Final message
 printf '\n####################################################################\n'
-echo "# 🎉 TPN CLI tool has been successfully installed at $BINARY_FILE"
+echo "# 🎉 TPN CLI tool has been successfully installed"
 echo "# You can now use it by typing 'tpn' in your terminal."
-printf '####################################################################\n'
+printf '####################################################################\n\n'

@@ -13,7 +13,7 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.9'
+CURRENT_VERSION='v0.0.10'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 DEBUG=${DEBUG:-false}
 
@@ -153,7 +153,7 @@ call_url() {
   url="$1"
   timeout="${2:-$TIMEOUT}"
   # If DEBUG=true log out url to call
-  curl --retry 3 --retry-delay 5 --max-time "$TIMEOUT" -s "$url"
+  curl --retry 3 --retry-delay 5 --max-time "$timeout" -s "$url"
 }
 
 
@@ -485,7 +485,7 @@ uninstall() {
   if [ -f "/etc/sudoers.d/tpn" ]; then
     grey "Removing sudoers visudo file..."
     sudo rm -f /etc/sudoers.d/tpn
-    green "Sudoers visudo file removed."
+    grey "Sudoers visudo file removed."
   fi
   green "TPN uninstall complete."
   exit 0

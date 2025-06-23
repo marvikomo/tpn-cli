@@ -42,7 +42,7 @@ print_green() { green "$1"; }
 print_red() { red "$1"; }
 
 run_and_log() {
-  echo "\n$*"
+  printf '\n%s\n' "$*"
   eval "$*"
 }
 
@@ -55,7 +55,7 @@ fail_exit() {
   fi
 }
 
-echo "\nTesting: countries (default)"
+printf '\nTesting: countries (default)\n'
 run_and_log "$TPN countries | tee countries.out"
 if [ $(wc -c < countries.out) -ge 10 ]; then
   print_green "PASS: countries"
@@ -65,7 +65,7 @@ else
   fail_exit
 fi
 
-echo "\nTesting: countries code"
+printf '\nTesting: countries code\n'
 run_and_log "$TPN countries code | tee countries_code.out"
 if [ $(wc -c < countries_code.out) -ge 10 ]; then
   print_green "PASS: countries code"
@@ -75,7 +75,7 @@ else
   fail_exit
 fi
 
-echo "\nTesting: status"
+printf '\nTesting: status\n'
 run_and_log "$TPN status | tee status.out"
 if grep -q "TPN status:" status.out; then
   print_green "PASS: status"
@@ -85,7 +85,7 @@ else
   fail_exit
 fi
 
-echo "\nTesting: connect to 'any' (real connection)"
+printf '\nTesting: connect to 'any' (real connection)\n'
 run_and_log "$TPN connect -f any | tee connect_any.out"
 if grep -qi "IP address changed" connect_any.out && ! grep -qi "error" connect_any.out; then
   print_green "PASS: connect any (real connection)"
@@ -96,7 +96,7 @@ else
   fail_exit
 fi
 
-echo "\nTesting: disconnect after connect (real disconnect)"
+printf '\nTesting: disconnect after connect (real disconnect)\n'
 run_and_log "$TPN disconnect | tee disconnect_any.out"
 if grep -qi "IP changed back" disconnect_any.out && ! grep -qi "error" disconnect_any.out; then
   print_green "PASS: disconnect after connect (real disconnect)"
@@ -106,7 +106,7 @@ else
   fail_exit
 fi
 
-echo "\nTesting: help"
+printf '\nTesting: help\n'
 run_and_log "$TPN help > help.out 2>&1"
 if grep -qi "usage" help.out; then
   print_green "PASS: help"
