@@ -16,7 +16,7 @@ curl -sS "https://raw.githubusercontent.com/taofu-labs/tpn-cli/main/setup.sh" | 
 For a list of commands, run `tpn help`, which will show you available options like so:
 
 ```md
-TPN v0.0.5 - CLI for creating VPN connections via the Tensor Private Network (TPN)
+TPN v0.0.9 - CLI for creating VPN connections via the Tensor Private Network (TPN)
 Usage: tpn <command> [options]
 
 Commands:
@@ -27,6 +27,8 @@ Commands:
   visudo                            one-time sudoers entry for wg-quick
   panic                             DESTRUCTIVE: wipe or remove network interfaces
   help                              show this help
+  update [--silent]                 check for updates and install if available
+  uninstall                         remove tpn CLI, config, and sudoers entry
 
 Options for connect:
   -l, --lease_minutes <min>  lease duration (default 10)
