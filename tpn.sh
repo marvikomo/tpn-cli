@@ -13,7 +13,7 @@ TMP_DIR=${TMPDIR:-/tmp}
 INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
-CURRENT_VERSION='v0.0.8'
+CURRENT_VERSION='v0.0.9'
 REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 DEBUG=${DEBUG:-false}
 
@@ -72,18 +72,18 @@ confirm() {
 # --------------------
 install_tools() {
   os=$(uname)
-  echo "wireguard-tools not found. One-time install required."
-  confirm "Install wireguard-tools now?" || { echo "Aborting."; exit 1; }
+  printf '%s\n' "wireguard-tools not found. One-time install required."
+  confirm "Install wireguard-tools now?" || { printf '%s\n' "Aborting."; exit 1; }
 
   if [ "$os" = "Linux" ]; then
-    [ -f /proc/version ] && grep -qi microsoft /proc/version && echo "Detected WSL environment."
-    echo "Running: sudo apt-get update && sudo apt-get install -y wireguard-tools"
+    [ -f /proc/version ] && grep -qi microsoft /proc/version && printf '%s\n' "Detected WSL environment."
+    printf '%s\n' "Running: sudo apt-get update && sudo apt-get install -y wireguard-tools"
     sudo apt-get update && sudo apt-get install -y wireguard-tools
   elif [ "$os" = "Darwin" ]; then
-    echo "Running: brew install wireguard-tools"
+    printf '%s\n' "Running: brew install wireguard-tools"
     brew install wireguard-tools
   else
-    echo "Unsupported OS: $os. Install wireguard-tools manually." >&2
+    printf '%s\n' "Unsupported OS: $os. Install wireguard-tools manually." >&2
     exit 1
   fi
 
@@ -123,6 +123,7 @@ Commands:
   panic                             DESTRUCTIVE: wipe or remove network interfaces
   help                              show this help
   update [--silent]                 check for updates and install if available
+  uninstall                         remove tpn CLI, config, and sudoers entry
 
 Options for connect:
   -l, --lease_minutes <min>  lease duration (default 10)
@@ -221,7 +222,7 @@ connect() {
   done
 
   # Print parsed values if verbose
-  [ $verbose -eq 1 ] && echo "Called with: lease=$lease, timeout=$timeout_override, skip_confirm=$skip_confirm, dry=$dry, verbose=$verbose"
+  [ $verbose -eq 1 ] && printf '%s\n' "Called with: lease=$lease, timeout=$timeout_override, skip_confirm=$skip_confirm, dry=$dry, verbose=$verbose"
 
   # Validate input
   [ -n "$timeout_override" ] && TIMEOUT="$timeout_override"
@@ -295,8 +296,8 @@ connect() {
   fi
 
   # Save lease end timestamp to temp file
-  echo "$lease_end_timestamp" > "$TMP_DIR/tpn_lease_end_timestamp"
-  echo "$lease_end_readable" > "$TMP_DIR/tpn_lease_end_readable"
+  printf '%s\n' "$lease_end_timestamp" > "$TMP_DIR/tpn_lease_end_timestamp"
+  printf '%s\n' "$lease_end_readable" > "$TMP_DIR/tpn_lease_end_readable"
 
   grey "TPN Connection lease ends in $lease minutes ($lease_end_readable)"
 
@@ -306,13 +307,17 @@ connect() {
 # Show status
 # --------------------
 status() {
-  IS_CONNECTED=$(wg show interfaces | wc -l | grep -q 0 && echo "Disconnected" || echo "Connected")
+  if [ "$(wg show interfaces | wc -l)" -eq 0 ]; then
+    IS_CONNECTED="Disconnected"
+  else
+    IS_CONNECTED="Connected"
+  fi
 
   MESSAGE="TPN status: $IS_CONNECTED ($(current_ip))"
   if [ "$IS_CONNECTED" = "Connected" ]; then
     green "$MESSAGE"
   else
-    echo "$MESSAGE"
+    printf '%s\n' "$MESSAGE"
   fi
 
   # If connected, show the time to lease end 
@@ -325,11 +330,10 @@ status() {
       [ "$minutes_until_lease_end" -lt 0 ] && minutes_until_lease_end=0
       grey "Lease ends in $minutes_until_lease_end minutes ($lease_end)"
     else
-      echo "No lease end time found."
+      printf '%s\n' "No lease end time found."
       return
     fi
   fi
-
 }
 
 # --------------------
@@ -349,7 +353,7 @@ disconnect() {
   grey "Disconnecting TPN..."
   IP_BEFORE_DISCONNECT="$(current_ip)"
 
-  [ ! -f "$cfg" ] && { echo "Error: no config to disconnect" >&2; exit 1; }
+  [ ! -f "$cfg" ] && { printf '%s\n' "Error: no config to disconnect" >&2; exit 1; }
 
   if [ $dry -eq 1 ]; then
     grey "DRY RUN: sudo wg-quick down $cfg"
@@ -394,11 +398,12 @@ visudo() {
 panic() {
   os=$(uname)
   red "WARNING: irreversible destructive action."
-  confirm "Proceed?" || { echo "Aborted."; exit 1; }
+  confirm "Proceed?" || { printf '%s\n' "Aborted."; exit 1; }
 
   if [ "$os" = "Darwin" ]; then
     confirm "Erase macOS network settings? Your computer will reboot." || exit 1
     sudo rm /Library/Preferences/SystemConfiguration/{com.apple.airport.preferences.plist,com.apple.network.identification.plist,NetworkInterfaces.plist,preferences.plist}
+    confirm "Are you sure you want to reboot now?" || exit 1
     sudo reboot
   elif [ "$os" = "Linux" ]; then
     wg_ifaces=$(sudo wg show interfaces)

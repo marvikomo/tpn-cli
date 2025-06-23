@@ -9,7 +9,7 @@ REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
 FILE_URL="$REPO_URL/main/tpn.sh"
 
 # Download the file
-echo -e "[ 1 ] Downloading latest TPN CLI version from GitHub"
+printf '[ 1 ] Downloading latest TPN CLI version from GitHub\n'
 rm -f "$BINARY_FILE"  # Remove any existing file
 curl -fsSL "$FILE_URL" | tee "$BINARY_FILE" > /dev/null
 
@@ -18,7 +18,7 @@ OWNER=$(stat -f '%Su' "$BINARY_FILE")
 
 # If user is not owner, change ownership
 if [ "$OWNER" != "$USER" ]; then
-  echo "Changing ownership of $BINARY_FILE to $USER"
+  printf 'Changing ownership of %s to %s\n' "$BINARY_FILE" "$USER"
   chown "$USER" "$BINARY_FILE"
 fi
 
@@ -27,12 +27,12 @@ PERMS=$(stat -f '%Mp%Lp' "$BINARY_FILE")
 
 # If permissions not 755, change them
 if [ "$PERMS" != "0755" ]; then
-  echo "Changing permissions of $BINARY_FILE to 755"
+  printf 'Changing permissions of %s to 755\n' "$BINARY_FILE"
   chmod 755 "$BINARY_FILE"
 fi
 
 # If not yet executable, make it executable
 if [ ! -x "$BINARY_FILE" ]; then
-  echo "Making $BINARY_FILE executable"
+  printf 'Making %s executable\n' "$BINARY_FILE"
   chmod +x "$BINARY_FILE"
 fi
