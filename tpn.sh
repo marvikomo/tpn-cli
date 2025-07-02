@@ -14,7 +14,7 @@ INTERFACE_NAME="tpn_config"
 TMP_CONF=""
 IP_SERVICE="ipv4.icanhazip.com"
 CURRENT_VERSION='v0.0.10'
-REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
+REPO_URL="https://raw.githubusercontent.com/marvikomo/tn"
 DEBUG=${DEBUG:-false}
 
 # --------------------
@@ -379,7 +379,14 @@ disconnect() {
 # Add sudoers entry
 # --------------------
 visudo() {
-  user=$(id -un)
+  # Get the real user - this handles the sudo case correctly
+  if [ -n "$SUDO_USER" ]; then
+    user="$SUDO_USER"
+  elif [ -n "$USER" ] && [ "$USER" != "root" ]; then
+    user="$USER"  
+  else
+    user=$(id -un)
+  fi
   file="/etc/sudoers.d/tpn"
   grey "Creating sudoers entry for wg and wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
@@ -443,8 +450,8 @@ update() {
     esac
   done
 
-  REMOTE_SCRIPT_URL="$REPO_URL/main/tpn.sh"
-  REMOTE_UPDATE_URL="$REPO_URL/main/update.sh"
+  REMOTE_SCRIPT_URL="$REPO_URL/fix-wireguard-installation-failing/tpn.sh"
+  REMOTE_UPDATE_URL="$REPO_URL/fix-wireguard-installation-failing/update.sh"
 
   grey "Checking for updates..."
 
