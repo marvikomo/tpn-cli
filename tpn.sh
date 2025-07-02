@@ -86,7 +86,7 @@ install_tools() {
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     printf '%s\n' "Running: brew install wireguard-tools"
-    brew install wireguard-tools
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools
   else
     printf '%s\n' "Unsupported OS: $os. Install wireguard-tools manually." >&2
     exit 1
