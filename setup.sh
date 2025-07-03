@@ -19,8 +19,8 @@ BINARY_FOLDER="/usr/local/bin"
 BINARY_FILE="$BINARY_FOLDER/tpn"
 
 # Download the current executable
-REPO_URL="https://raw.githubusercontent.com/taofu-labs/tpn-cli"
-FILE_URL="$REPO_URL/main/tpn.sh"
+REPO_URL="https://raw.githubusercontent.com/marvikomo/tpn-cli"
+FILE_URL="$REPO_URL/marvikomo-patch-1/tpn.sh"
 
 # Tell the user to expect sudo
 printf '[ 0 ] Requesting superuser permissions for installation...\n'
