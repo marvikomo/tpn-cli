@@ -379,7 +379,11 @@ disconnect() {
 # Add sudoers entry
 # --------------------
 visudo() {
-  user=$(id -un)
+  if [ -n "$USER" ]; then
+    user="$USER"
+  else
+    user=$(id -un)
+  fi
   file="/etc/sudoers.d/tpn"
   grey "Creating sudoers entry for wg and wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
