@@ -86,7 +86,7 @@ install_tools() {
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
     printf '%s\n' "Running: brew install wireguard-tools"
-    brew install --no-upgrade wireguard-tools
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install wireguard-tools
   else
     printf '%s\n' "Unsupported OS: $os. Install wireguard-tools manually." >&2
     exit 1
@@ -379,7 +379,11 @@ disconnect() {
 # Add sudoers entry
 # --------------------
 visudo() {
-  user=$(id -un)
+  if [ -n "$USER" ]; then
+    user="$USER"
+  else
+    user=$(id -un)
+  fi
   file="/etc/sudoers.d/tpn"
   grey "Creating sudoers entry for wg and wg-quick..."
   [ -f "$file" ] && sudo rm -f "$file"
