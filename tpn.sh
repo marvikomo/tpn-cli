@@ -392,6 +392,15 @@ visudo() {
   WG_QUICK_BIN=$(command -v wg-quick 2>/dev/null)
   WG_BIN=$(command -v wg 2>/dev/null)
 
+  # Check if both binaries were found
+  if [ -z "$WG_QUICK_BIN" ] || [ -z "$WG_BIN" ]; then
+    red "Error: WireGuard tools not found."
+    [ -z "$WG_QUICK_BIN" ] && red "  wg-quick not found in PATH"
+    [ -z "$WG_BIN" ] && red "  wg not found in PATH"
+    red "Please install wireguard-tools first."
+    exit 1
+  fi
+
   # Add sudoers entry for wg and wg-quick (all parameters allowed)
   printf "%s ALL=(ALL) NOPASSWD: %s, %s\n" \
     "$user" "$WG_QUICK_BIN" "$WG_BIN" \
