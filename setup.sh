@@ -70,8 +70,12 @@ if [ ! -x "$BINARY_FILE" ]; then
 fi
 
 # Run TPN visudo
-printf '[ 4 ] Running TPN visudo to ensure proper permissions\n'
-tpn visudo
+if [ "$TPN_SETUP_NO_VISUDO" = "1" ] || [ "$TPN_SETUP_NO_VISUDO" = "true" ]; then
+    printf '[ 4 ] Skipping TPN visudo (TPN_SETUP_NO_VISUDO is set)\n'
+else
+    printf '[ 4 ] Running TPN visudo to ensure proper permissions\n'
+    tpn visudo
+fi
 
 # Final message
 printf '\n####################################################################\n'
